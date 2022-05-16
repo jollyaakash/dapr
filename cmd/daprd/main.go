@@ -79,7 +79,7 @@ import (
 	pubsub_jetstream "github.com/dapr/components-contrib/pubsub/jetstream"
 	pubsub_kafka "github.com/dapr/components-contrib/pubsub/kafka"
 	pubsub_mqtt "github.com/dapr/components-contrib/pubsub/mqtt"
-	pubsub_mqtte4k "github.com/dapr/components-contrib/pubsub/mqtt"
+	pubsub_mqtte4k "github.com/dapr/components-contrib/pubsub/mqtte4k"
 	"github.com/dapr/components-contrib/pubsub/natsstreaming"
 	pubsub_pulsar "github.com/dapr/components-contrib/pubsub/pulsar"
 	"github.com/dapr/components-contrib/pubsub/rabbitmq"

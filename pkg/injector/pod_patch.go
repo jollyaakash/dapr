@@ -749,6 +749,11 @@ func getSidecarContainer(annotations map[string]string, id, daprSidecarImage, im
 		c.VolumeMounts = append(c.VolumeMounts, *tokenVolumeMount)
 	}
 
+	log.Infof("Sidecar injector successfully injected Spiffe volume for app: Spiffe checkout ")
+	spiffeVolumeMount := &corev1.VolumeMount{Name: "iotedge-spiffe-agent-socket", MountPath: "/home/nonroot/sockets", ReadOnly: false}
+
+	c.VolumeMounts = append(c.VolumeMounts, *spiffeVolumeMount)
+
 	if logAsJSONEnabled(annotations) {
 		c.Args = append(c.Args, "--log-as-json")
 	}
