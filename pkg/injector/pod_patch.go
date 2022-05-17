@@ -21,6 +21,8 @@ import (
 	"strconv"
 	"strings"
 
+	"golang.org/x/exp/slices"
+
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -167,7 +169,7 @@ func (i *injector) getPodPatchOperations(ar *v1.AdmissionReview,
 
 	socketMount := appendUnixDomainSocketVolume(&pod)
 	tokenMount := getTokenVolumeMount(pod)
-	sideCarVolumeMounts := getSideCarVolumeMount(pod.Annotations)
+	sideCarVolumeMounts := getSideCarVolumeMounts(pod)
 	sidecarContainer, err := getSidecarContainer(pod.Annotations, id, image, imagePullPolicy, req.Namespace, apiSvcAddress, placementAddress, socketMount, tokenMount, sideCarVolumeMounts, trustAnchors, certChain, certKey, sentryAddress, mtlsEnabled, identity)
 	if err != nil {
 		return nil, err
@@ -447,10 +449,15 @@ func getSideCarVolumeMountReadWriteFlag(annotations map[string]string) bool {
 func getSideCarVolumeMountMap(annotations map[string]string) map[string]string {
 	result := make(map[string]string)
 	passedValue := getStringAnnotationOrDefault(annotations, daprSideCarVolumeMounts, "")
+	// Split each mount on "," and volume name and path on "="
 	volumeMountList := strings.Split(passedValue, ",")
-	for _, individualVolumeMount := range volumeMountList {
-		splitVolumeMount := strings.Split(individualVolumeMount, "=")
-		result[splitVolumeMount[0]] = splitVolumeMount[1]
+	if len(volumeMountList) > 0 {
+		for _, individualVolumeMount := range volumeMountList {
+			splitVolumeMount := strings.Split(individualVolumeMount, "=")
+			if len(splitVolumeMount) == 2 {
+				result[splitVolumeMount[0]] = splitVolumeMount[1]
+			}
+		}
 	}
 	return result
 }
@@ -868,13 +875,17 @@ func appendUnixDomainSocketVolume(pod *corev1.Pod) *corev1.VolumeMount {
 	return &corev1.VolumeMount{Name: unixDomainSocketVolume, MountPath: unixDomainSocket}
 }
 
-func getSideCarVolumeMount(annotations map[string]string) []corev1.VolumeMount {
-	volumeMountMap := getSideCarVolumeMountMap(annotations)
-	readWriteMount := getSideCarVolumeMountReadWriteFlag(annotations)
+func getSideCarVolumeMounts(pod corev1.Pod) []corev1.VolumeMount {
+	volumeMountMap := getSideCarVolumeMountMap(pod.Annotations)
+	readWriteMount := getSideCarVolumeMountReadWriteFlag(pod.Annotations)
 	result := []corev1.VolumeMount{}
+	lenVolumes := len(pod.Spec.Volumes)
 
 	for name, mountPath := range volumeMountMap {
-		result = append(result, corev1.VolumeMount{Name: name, MountPath: mountPath, ReadOnly: readWriteMount})
+		idx := slices.IndexFunc(pod.Spec.Volumes, func(vol corev1.Volume) bool { return vol.Name == name })
+		if idx >= 0 && idx < lenVolumes {
+			result = append(result, corev1.VolumeMount{Name: name, MountPath: mountPath, ReadOnly: readWriteMount})
+		}
 	}
 
 	return result
