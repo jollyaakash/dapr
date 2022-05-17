@@ -38,83 +38,86 @@ import (
 )
 
 const (
-	sidecarContainerName              = "daprd"
-	daprEnabledKey                    = "dapr.io/enabled"
-	daprAppPortKey                    = "dapr.io/app-port"
-	daprConfigKey                     = "dapr.io/config"
-	daprAppProtocolKey                = "dapr.io/app-protocol"
-	appIDKey                          = "dapr.io/app-id"
-	daprEnableProfilingKey            = "dapr.io/enable-profiling"
-	daprLogLevel                      = "dapr.io/log-level"
-	daprAPITokenSecret                = "dapr.io/api-token-secret" /* #nosec */
-	daprAppTokenSecret                = "dapr.io/app-token-secret" /* #nosec */
-	daprLogAsJSON                     = "dapr.io/log-as-json"
-	daprAppMaxConcurrencyKey          = "dapr.io/app-max-concurrency"
-	daprEnableMetricsKey              = "dapr.io/enable-metrics"
-	daprMetricsPortKey                = "dapr.io/metrics-port"
-	daprEnableDebugKey                = "dapr.io/enable-debug"
-	daprDebugPortKey                  = "dapr.io/debug-port"
-	daprEnvKey                        = "dapr.io/env"
-	daprCPULimitKey                   = "dapr.io/sidecar-cpu-limit"
-	daprMemoryLimitKey                = "dapr.io/sidecar-memory-limit"
-	daprCPURequestKey                 = "dapr.io/sidecar-cpu-request"
-	daprMemoryRequestKey              = "dapr.io/sidecar-memory-request"
-	daprListenAddresses               = "dapr.io/sidecar-listen-addresses"
-	daprLivenessProbeDelayKey         = "dapr.io/sidecar-liveness-probe-delay-seconds"
-	daprLivenessProbeTimeoutKey       = "dapr.io/sidecar-liveness-probe-timeout-seconds"
-	daprLivenessProbePeriodKey        = "dapr.io/sidecar-liveness-probe-period-seconds"
-	daprLivenessProbeThresholdKey     = "dapr.io/sidecar-liveness-probe-threshold"
-	daprReadinessProbeDelayKey        = "dapr.io/sidecar-readiness-probe-delay-seconds"
-	daprReadinessProbeTimeoutKey      = "dapr.io/sidecar-readiness-probe-timeout-seconds"
-	daprReadinessProbePeriodKey       = "dapr.io/sidecar-readiness-probe-period-seconds"
-	daprReadinessProbeThresholdKey    = "dapr.io/sidecar-readiness-probe-threshold"
-	daprImage                         = "dapr.io/sidecar-image"
-	daprAppSSLKey                     = "dapr.io/app-ssl"
-	daprMaxRequestBodySize            = "dapr.io/http-max-request-size"
-	daprReadBufferSize                = "dapr.io/http-read-buffer-size"
-	daprHTTPStreamRequestBody         = "dapr.io/http-stream-request-body"
-	daprGracefulShutdownSeconds       = "dapr.io/graceful-shutdown-seconds"
-	daprEnableAPILogging              = "dapr.io/enable-api-logging"
-	daprUnixDomainSocketPath          = "dapr.io/unix-domain-socket-path"
-	unixDomainSocketVolume            = "dapr-unix-domain-socket"
-	containersPath                    = "/spec/containers"
-	sidecarHTTPPort                   = 3500
-	sidecarAPIGRPCPort                = 50001
-	sidecarInternalGRPCPort           = 50002
-	sidecarPublicPort                 = 3501
-	userContainerDaprHTTPPortName     = "DAPR_HTTP_PORT"
-	userContainerDaprGRPCPortName     = "DAPR_GRPC_PORT"
-	apiAddress                        = "dapr-api"
-	placementService                  = "dapr-placement-server"
-	sentryService                     = "dapr-sentry"
-	apiPort                           = 80
-	placementServicePort              = 50005
-	sentryServicePort                 = 80
-	sidecarHTTPPortName               = "dapr-http"
-	sidecarGRPCPortName               = "dapr-grpc"
-	sidecarInternalGRPCPortName       = "dapr-internal"
-	sidecarMetricsPortName            = "dapr-metrics"
-	sidecarDebugPortName              = "dapr-debug"
-	defaultLogLevel                   = "info"
-	defaultLogAsJSON                  = false
-	defaultAppSSL                     = false
-	kubernetesMountPath               = "/var/run/secrets/kubernetes.io/serviceaccount"
-	defaultConfig                     = "daprsystem"
-	defaultEnabledMetric              = true
-	defaultMetricsPort                = 9090
-	defaultSidecarDebug               = false
-	defaultSidecarDebugPort           = 40000
-	defaultSidecarListenAddresses     = "[::1],127.0.0.1"
-	sidecarHealthzPath                = "healthz"
-	defaultHealthzProbeDelaySeconds   = 3
-	defaultHealthzProbeTimeoutSeconds = 3
-	defaultHealthzProbePeriodSeconds  = 6
-	defaultHealthzProbeThreshold      = 3
-	apiVersionV1                      = "v1.0"
-	defaultMtlsEnabled                = true
-	trueString                        = "true"
-	defaultDaprHTTPStreamRequestBody  = false
-	defaultAPILoggingEnabled          = false
+	sidecarContainerName                   = "daprd"
+	daprEnabledKey                         = "dapr.io/enabled"
+	daprAppPortKey                         = "dapr.io/app-port"
+	daprConfigKey                          = "dapr.io/config"
+	daprAppProtocolKey                     = "dapr.io/app-protocol"
+	appIDKey                               = "dapr.io/app-id"
+	daprEnableProfilingKey                 = "dapr.io/enable-profiling"
+	daprLogLevel                           = "dapr.io/log-level"
+	daprAPITokenSecret                     = "dapr.io/api-token-secret" /* #nosec */
+	daprAppTokenSecret                     = "dapr.io/app-token-secret" /* #nosec */
+	daprLogAsJSON                          = "dapr.io/log-as-json"
+	daprAppMaxConcurrencyKey               = "dapr.io/app-max-concurrency"
+	daprEnableMetricsKey                   = "dapr.io/enable-metrics"
+	daprMetricsPortKey                     = "dapr.io/metrics-port"
+	daprEnableDebugKey                     = "dapr.io/enable-debug"
+	daprDebugPortKey                       = "dapr.io/debug-port"
+	daprEnvKey                             = "dapr.io/env"
+	daprCPULimitKey                        = "dapr.io/sidecar-cpu-limit"
+	daprMemoryLimitKey                     = "dapr.io/sidecar-memory-limit"
+	daprCPURequestKey                      = "dapr.io/sidecar-cpu-request"
+	daprMemoryRequestKey                   = "dapr.io/sidecar-memory-request"
+	daprListenAddresses                    = "dapr.io/sidecar-listen-addresses"
+	daprLivenessProbeDelayKey              = "dapr.io/sidecar-liveness-probe-delay-seconds"
+	daprLivenessProbeTimeoutKey            = "dapr.io/sidecar-liveness-probe-timeout-seconds"
+	daprLivenessProbePeriodKey             = "dapr.io/sidecar-liveness-probe-period-seconds"
+	daprLivenessProbeThresholdKey          = "dapr.io/sidecar-liveness-probe-threshold"
+	daprReadinessProbeDelayKey             = "dapr.io/sidecar-readiness-probe-delay-seconds"
+	daprReadinessProbeTimeoutKey           = "dapr.io/sidecar-readiness-probe-timeout-seconds"
+	daprReadinessProbePeriodKey            = "dapr.io/sidecar-readiness-probe-period-seconds"
+	daprReadinessProbeThresholdKey         = "dapr.io/sidecar-readiness-probe-threshold"
+	daprImage                              = "dapr.io/sidecar-image"
+	daprAppSSLKey                          = "dapr.io/app-ssl"
+	daprMaxRequestBodySize                 = "dapr.io/http-max-request-size"
+	daprReadBufferSize                     = "dapr.io/http-read-buffer-size"
+	daprHTTPStreamRequestBody              = "dapr.io/http-stream-request-body"
+	daprGracefulShutdownSeconds            = "dapr.io/graceful-shutdown-seconds"
+	daprEnableAPILogging                   = "dapr.io/enable-api-logging"
+	daprSideCarVolumeMounts                = "dapr.io/side-volume-mounts"
+	daprSideCarVolumeMountReadWriteFlag    = "dapr.io/side-volume-mounts-read-write"
+	daprUnixDomainSocketPath               = "dapr.io/unix-domain-socket-path"
+	unixDomainSocketVolume                 = "dapr-unix-domain-socket"
+	containersPath                         = "/spec/containers"
+	sidecarHTTPPort                        = 3500
+	sidecarAPIGRPCPort                     = 50001
+	sidecarInternalGRPCPort                = 50002
+	sidecarPublicPort                      = 3501
+	userContainerDaprHTTPPortName          = "DAPR_HTTP_PORT"
+	userContainerDaprGRPCPortName          = "DAPR_GRPC_PORT"
+	apiAddress                             = "dapr-api"
+	placementService                       = "dapr-placement-server"
+	sentryService                          = "dapr-sentry"
+	apiPort                                = 80
+	placementServicePort                   = 50005
+	sentryServicePort                      = 80
+	sidecarHTTPPortName                    = "dapr-http"
+	sidecarGRPCPortName                    = "dapr-grpc"
+	sidecarInternalGRPCPortName            = "dapr-internal"
+	sidecarMetricsPortName                 = "dapr-metrics"
+	sidecarDebugPortName                   = "dapr-debug"
+	defaultLogLevel                        = "info"
+	defaultLogAsJSON                       = false
+	defaultAppSSL                          = false
+	kubernetesMountPath                    = "/var/run/secrets/kubernetes.io/serviceaccount"
+	defaultConfig                          = "daprsystem"
+	defaultEnabledMetric                   = true
+	defaultMetricsPort                     = 9090
+	defaultSidecarDebug                    = false
+	defaultSidecarDebugPort                = 40000
+	defaultSidecarListenAddresses          = "[::1],127.0.0.1"
+	sidecarHealthzPath                     = "healthz"
+	defaultHealthzProbeDelaySeconds        = 3
+	defaultHealthzProbeTimeoutSeconds      = 3
+	defaultHealthzProbePeriodSeconds       = 6
+	defaultHealthzProbeThreshold           = 3
+	apiVersionV1                           = "v1.0"
+	defaultMtlsEnabled                     = true
+	trueString                             = "true"
+	defaultDaprHTTPStreamRequestBody       = false
+	defaultAPILoggingEnabled               = false
+	defaultSideCarVolumeMountReadWriteFlag = false
 )
 
 func (i *injector) getPodPatchOperations(ar *v1.AdmissionReview,
@@ -164,7 +167,8 @@ func (i *injector) getPodPatchOperations(ar *v1.AdmissionReview,
 
 	socketMount := appendUnixDomainSocketVolume(&pod)
 	tokenMount := getTokenVolumeMount(pod)
-	sidecarContainer, err := getSidecarContainer(pod.Annotations, id, image, imagePullPolicy, req.Namespace, apiSvcAddress, placementAddress, socketMount, tokenMount, trustAnchors, certChain, certKey, sentryAddress, mtlsEnabled, identity)
+	sideCarVolumeMounts := getSideCarVolumeMount(pod.Annotations)
+	sidecarContainer, err := getSidecarContainer(pod.Annotations, id, image, imagePullPolicy, req.Namespace, apiSvcAddress, placementAddress, socketMount, tokenMount, sideCarVolumeMounts, trustAnchors, certChain, certKey, sentryAddress, mtlsEnabled, identity)
 	if err != nil {
 		return nil, err
 	}
@@ -436,6 +440,21 @@ func getGracefulShutdownSeconds(annotations map[string]string) (int32, error) {
 	return getInt32Annotation(annotations, daprGracefulShutdownSeconds)
 }
 
+func getSideCarVolumeMountReadWriteFlag(annotations map[string]string) bool {
+	return getBoolAnnotationOrDefault(annotations, daprSideCarVolumeMountReadWriteFlag, defaultSideCarVolumeMountReadWriteFlag)
+}
+
+func getSideCarVolumeMountMap(annotations map[string]string) map[string]string {
+	result := make(map[string]string)
+	passedValue := getStringAnnotationOrDefault(annotations, daprSideCarVolumeMounts, "")
+	volumeMountList := strings.Split(passedValue, ",")
+	for _, individualVolumeMount := range volumeMountList {
+		splitVolumeMount := strings.Split(individualVolumeMount, "=")
+		result[splitVolumeMount[0]] = splitVolumeMount[1]
+	}
+	return result
+}
+
 func getUnixDomainSocketPath(annotations map[string]string) string {
 	return getStringAnnotationOrDefault(annotations, daprUnixDomainSocketPath, "")
 }
@@ -584,7 +603,7 @@ func getPullPolicy(pullPolicy string) corev1.PullPolicy {
 	}
 }
 
-func getSidecarContainer(annotations map[string]string, id, daprSidecarImage, imagePullPolicy, namespace, controlPlaneAddress, placementServiceAddress string, socketVolumeMount, tokenVolumeMount *corev1.VolumeMount, trustAnchors, certChain, certKey, sentryAddress string, mtlsEnabled bool, identity string) (*corev1.Container, error) {
+func getSidecarContainer(annotations map[string]string, id, daprSidecarImage, imagePullPolicy, namespace, controlPlaneAddress, placementServiceAddress string, socketVolumeMount, tokenVolumeMount *corev1.VolumeMount, sideCarVolumeMounts []corev1.volumeMount, trustAnchors, certChain, certKey, sentryAddress string, mtlsEnabled bool, identity string) (*corev1.Container, error) {
 	appPort, err := getAppPort(annotations)
 	if err != nil {
 		return nil, err
@@ -749,10 +768,11 @@ func getSidecarContainer(annotations map[string]string, id, daprSidecarImage, im
 		c.VolumeMounts = append(c.VolumeMounts, *tokenVolumeMount)
 	}
 
-	log.Infof("Sidecar injector successfully injected Spiffe volume for app: Spiffe checkout ")
-	spiffeVolumeMount := &corev1.VolumeMount{Name: "iotedge-spiffe-agent-socket", MountPath: "/home/nonroot/sockets", ReadOnly: false}
-
-	c.VolumeMounts = append(c.VolumeMounts, *spiffeVolumeMount)
+	if len(sideCarVolumeMounts) > 0 {
+		for _, volumeMount := range sideCarVolumeMounts {
+			c.VolumeMounts = append(c.VolumeMounts, *volumeMount)
+		}
+	}
 
 	if logAsJSONEnabled(annotations) {
 		c.Args = append(c.Args, "--log-as-json")
@@ -846,4 +866,16 @@ func appendUnixDomainSocketVolume(pod *corev1.Pod) *corev1.VolumeMount {
 	pod.Spec.Volumes = append(pod.Spec.Volumes, *socketVolume)
 
 	return &corev1.VolumeMount{Name: unixDomainSocketVolume, MountPath: unixDomainSocket}
+}
+
+func getSideCarVolumeMount(annotations map[string]string) []corev1.VolumeMount {
+	volumeMountMap := getSideCarVolumeMountMap(annotations)
+	readWriteMount := getSideCarVolumeMountReadWriteFlag(annotations)
+	result := []corev1.VolumeMount{}
+
+	for name, mountPath := range volumeMountMap {
+		result = append(result, corev1.VolumeMount{Name: name, MountPath: mountPath, ReadOnly: readWriteMount})
+	}
+
+	return result
 }
