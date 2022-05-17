@@ -603,7 +603,7 @@ func getPullPolicy(pullPolicy string) corev1.PullPolicy {
 	}
 }
 
-func getSidecarContainer(annotations map[string]string, id, daprSidecarImage, imagePullPolicy, namespace, controlPlaneAddress, placementServiceAddress string, socketVolumeMount, tokenVolumeMount *corev1.VolumeMount, sideCarVolumeMounts []corev1.volumeMount, trustAnchors, certChain, certKey, sentryAddress string, mtlsEnabled bool, identity string) (*corev1.Container, error) {
+func getSidecarContainer(annotations map[string]string, id, daprSidecarImage, imagePullPolicy, namespace, controlPlaneAddress, placementServiceAddress string, socketVolumeMount, tokenVolumeMount *corev1.VolumeMount, sideCarVolumeMounts []corev1.VolumeMount, trustAnchors, certChain, certKey, sentryAddress string, mtlsEnabled bool, identity string) (*corev1.Container, error) {
 	appPort, err := getAppPort(annotations)
 	if err != nil {
 		return nil, err
@@ -770,7 +770,7 @@ func getSidecarContainer(annotations map[string]string, id, daprSidecarImage, im
 
 	if len(sideCarVolumeMounts) > 0 {
 		for _, volumeMount := range sideCarVolumeMounts {
-			c.VolumeMounts = append(c.VolumeMounts, *volumeMount)
+			c.VolumeMounts = append(c.VolumeMounts, volumeMount)
 		}
 	}
 
