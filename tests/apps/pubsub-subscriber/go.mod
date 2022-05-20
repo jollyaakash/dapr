@@ -1,8 +1,9 @@
 module app
 
-go 1.17
+go 1.18
 
 require (
+	github.com/google/uuid v1.1.2
 	github.com/gorilla/mux v1.8.0
 	k8s.io/apimachinery v0.20.0
 )

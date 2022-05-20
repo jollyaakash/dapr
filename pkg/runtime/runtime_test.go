@@ -36,7 +36,6 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-multierror"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/phayes/freeport"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -895,6 +894,51 @@ func TestMetadataUUID(t *testing.T) {
 		assert.NotEqual(t, uuid0, uuid1)
 		assert.NotEqual(t, uuid0, uuid2)
 		assert.NotEqual(t, uuid1, uuid2)
+	})
+
+	err := rt.processComponentAndDependents(pubsubComponent)
+	assert.Nil(t, err)
+}
+
+func TestMetadataPodName(t *testing.T) {
+	pubsubComponent := components_v1alpha1.Component{
+		ObjectMeta: meta_v1.ObjectMeta{
+			Name: TestPubsubName,
+		},
+		Spec: components_v1alpha1.ComponentSpec{
+			Type:     "pubsub.mockPubSub",
+			Version:  "v1",
+			Metadata: getFakeMetadataItems(),
+		},
+	}
+
+	pubsubComponent.Spec.Metadata = append(
+		pubsubComponent.Spec.Metadata,
+		components_v1alpha1.MetadataItem{
+			Name: "consumerID",
+			Value: components_v1alpha1.DynamicValue{
+				JSON: v1.JSON{
+					Raw: []byte("{podName}"),
+				},
+			},
+		})
+	rt := NewTestDaprRuntime(modes.KubernetesMode)
+	defer stopRuntime(t, rt)
+	mockPubSub := new(daprt.MockPubSub)
+
+	rt.pubSubRegistry.Register(
+		pubsub_loader.New("mockPubSub", func() pubsub.PubSub {
+			return mockPubSub
+		}),
+	)
+
+	rt.podName = "testPodName"
+
+	mockPubSub.On("Init", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+		metadata := args.Get(0).(pubsub.Metadata)
+		consumerID := metadata.Properties["consumerID"]
+
+		assert.Equal(t, "testPodName", consumerID)
 	})
 
 	err := rt.processComponentAndDependents(pubsubComponent)
@@ -2372,7 +2416,6 @@ func TestOnNewPublishedMessage(t *testing.T) {
 
 		// assert
 		var cloudEvent map[string]interface{}
-		json := jsoniter.ConfigFastest
 		json.Unmarshal(testPubSubMessage.data, &cloudEvent)
 		expectedClientError := errors.Errorf("RETRY status returned from app while processing pub/sub event %v", cloudEvent["id"].(string))
 		assert.Equal(t, expectedClientError.Error(), err.Error())
@@ -2500,7 +2543,6 @@ func TestOnNewPublishedMessage(t *testing.T) {
 
 		// assert
 		var cloudEvent map[string]interface{}
-		json := jsoniter.ConfigFastest
 		json.Unmarshal(testPubSubMessage.data, &cloudEvent)
 		expectedClientError := errors.Errorf("retriable error returned from app while processing pub/sub event %v, topic: %v, body: Internal Error. status code returned: 500", cloudEvent["id"].(string), cloudEvent["topic"])
 		assert.Equal(t, expectedClientError.Error(), err.Error())
@@ -2760,6 +2802,148 @@ func TestPubsubWithResiliency(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 2, failingAppChannel.Failure.CallCount["timeoutSubTopic"])
 		assert.Less(t, end.Sub(start), time.Second*10)
+	})
+}
+
+// mockSubscribePubSub is an in-memory pubsub component.
+type mockSubscribePubSub struct {
+	handlers map[string]pubsub.Handler
+	pubCount map[string]int
+}
+
+// Init is a mock initialization method.
+func (m *mockSubscribePubSub) Init(metadata pubsub.Metadata) error {
+	m.handlers = make(map[string]pubsub.Handler)
+	m.pubCount = make(map[string]int)
+	return nil
+}
+
+// Publish is a mock publish method. Immediately trigger handler if topic is subscribed.
+func (m *mockSubscribePubSub) Publish(req *pubsub.PublishRequest) error {
+	m.pubCount[req.Topic]++
+	if handler, ok := m.handlers[req.Topic]; ok {
+		pubsubMsg := &pubsub.NewMessage{
+			Data:  req.Data,
+			Topic: req.Topic,
+		}
+		handler(context.Background(), pubsubMsg)
+	}
+
+	return nil
+}
+
+// Subscribe is a mock subscribe method.
+func (m *mockSubscribePubSub) Subscribe(req pubsub.SubscribeRequest, handler pubsub.Handler) error {
+	m.handlers[req.Topic] = handler
+	return nil
+}
+
+func (m *mockSubscribePubSub) Close() error {
+	return nil
+}
+
+func (m *mockSubscribePubSub) Features() []pubsub.Feature {
+	return nil
+}
+
+func TestPubSubDeadLetter(t *testing.T) {
+	testDeadLetterPubsub := "failPubsub"
+	pubsubComponent := components_v1alpha1.Component{
+		ObjectMeta: meta_v1.ObjectMeta{
+			Name: testDeadLetterPubsub,
+		},
+		Spec: components_v1alpha1.ComponentSpec{
+			Type:     "pubsub.mockPubSub",
+			Version:  "v1",
+			Metadata: getFakeMetadataItems(),
+		},
+	}
+
+	t.Run("succeeded to publish message to dead letter when send message to app returns error", func(t *testing.T) {
+		rt := NewTestDaprRuntime(modes.StandaloneMode)
+		defer stopRuntime(t, rt)
+		rt.pubSubRegistry.Register(
+			pubsub_loader.New("mockPubSub", func() pubsub.PubSub {
+				return &mockSubscribePubSub{}
+			}),
+		)
+		req := invokev1.NewInvokeMethodRequest("dapr/subscribe")
+		req.WithHTTPExtension(http.MethodGet, "")
+		req.WithRawData(nil, invokev1.JSONContentType)
+
+		subscriptionItems := []runtime_pubsub.SubscriptionJSON{
+			{PubsubName: testDeadLetterPubsub, Topic: "topic0", DeadLetterTopic: "topic1", Route: "error"},
+			{PubsubName: testDeadLetterPubsub, Topic: "topic1", Route: "success"},
+		}
+		sub, _ := json.Marshal(subscriptionItems)
+		fakeResp := invokev1.NewInvokeMethodResponse(200, "OK", nil)
+		fakeResp.WithRawData(sub, "application/json")
+
+		mockAppChannel := new(channelt.MockAppChannel)
+		rt.appChannel = mockAppChannel
+		mockAppChannel.On("InvokeMethod", mock.AnythingOfType("*context.emptyCtx"), req).Return(fakeResp, nil)
+		// Mock send message to app returns error.
+		mockAppChannel.On("InvokeMethod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything).Return(nil, errors.New("failed to send"))
+
+		require.NoError(t, rt.initPubSub(pubsubComponent))
+		rt.startSubscribing()
+
+		err := rt.Publish(&pubsub.PublishRequest{
+			PubsubName: testDeadLetterPubsub,
+			Topic:      "topic0",
+			Data:       []byte(`{"id":"1"}`),
+		})
+		assert.Nil(t, err)
+		pubsubIns := rt.pubSubs[testDeadLetterPubsub].(*mockSubscribePubSub)
+		assert.Equal(t, 1, pubsubIns.pubCount["topic0"])
+		// Ensure the message is sent to dead letter topic.
+		assert.Equal(t, 1, pubsubIns.pubCount["topic1"])
+		mockAppChannel.AssertNumberOfCalls(t, "InvokeMethod", 3)
+	})
+
+	t.Run("use dead letter with resiliency", func(t *testing.T) {
+		rt := NewTestDaprRuntime(modes.StandaloneMode)
+		defer stopRuntime(t, rt)
+		rt.resiliency = resiliency.FromConfigurations(logger.NewLogger("test"), testResiliency)
+		rt.pubSubRegistry.Register(
+			pubsub_loader.New("mockPubSub", func() pubsub.PubSub {
+				return &mockSubscribePubSub{}
+			}),
+		)
+		req := invokev1.NewInvokeMethodRequest("dapr/subscribe")
+		req.WithHTTPExtension(http.MethodGet, "")
+		req.WithRawData(nil, invokev1.JSONContentType)
+
+		subscriptionItems := []runtime_pubsub.SubscriptionJSON{
+			{PubsubName: testDeadLetterPubsub, Topic: "topic0", DeadLetterTopic: "topic1", Route: "error"},
+			{PubsubName: testDeadLetterPubsub, Topic: "topic1", Route: "success"},
+		}
+		sub, _ := json.Marshal(subscriptionItems)
+		fakeResp := invokev1.NewInvokeMethodResponse(200, "OK", nil)
+		fakeResp.WithRawData(sub, "application/json")
+
+		mockAppChannel := new(channelt.MockAppChannel)
+		rt.appChannel = mockAppChannel
+		mockAppChannel.On("InvokeMethod", mock.AnythingOfType("*context.emptyCtx"), req).Return(fakeResp, nil)
+		// Mock send message to app returns error.
+		mockAppChannel.On("InvokeMethod", mock.AnythingOfType("*context.timerCtx"), mock.Anything).Return(nil, errors.New("failed to send"))
+
+		require.NoError(t, rt.initPubSub(pubsubComponent))
+		rt.startSubscribing()
+
+		err := rt.Publish(&pubsub.PublishRequest{
+			PubsubName: testDeadLetterPubsub,
+			Topic:      "topic0",
+			Data:       []byte(`{"id":"1"}`),
+		})
+		assert.Nil(t, err)
+		pubsubIns := rt.pubSubs[testDeadLetterPubsub].(*mockSubscribePubSub)
+		// Consider of resiliency, publish message may retry in some cases, make sure the pub count is greater than 1.
+		assert.True(t, pubsubIns.pubCount["topic0"] >= 1)
+		// Make sure every message that is sent to topic0 is sent to its dead letter topic1.
+		assert.Equal(t, pubsubIns.pubCount["topic0"], pubsubIns.pubCount["topic1"])
+		// Except of the one getting config from app, make sure each publish will result to twice subscribe call
+		mockAppChannel.AssertNumberOfCalls(t, "InvokeMethod", 1+2*pubsubIns.pubCount["topic0"]+2*pubsubIns.pubCount["topic1"])
 	})
 }
 
